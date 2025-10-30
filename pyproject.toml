@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "panst3r"
+version = "0.1.0"
+description = "Official code of PanSt3R: Multi-view Consistent Panoptic Segmentation"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "NAVER LABS EUROPE", email = "info@naverlabs.com" }]
+dependencies = [
+    "must3r @ git+https://github.com/naver/must3r.git",
+    "transformers>=4.50.0",
+    "sentencepiece",
+    "pyrender @ git+https://github.com/lojzezust/pyrender.git"
+]
+
+# [project.optional-dependencies]
+# full = [
+#   "must3r[full] @ git+https://github.com/naver/must3r.git@must3r_setup",
+# ]
+
+
+# Optional console scripts: `panst3r` runs main:cli()
+# [project.scripts]
+# panst3r = "panst3r.main:cli"
+
+[project.urls]
+Homepage = "https://github.com/naver/panst3r"
+Issues = "https://github.com/naver/panst3r/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/panst3r"]
+
+[tool.hatch.metadata]
+allow-direct-references = true

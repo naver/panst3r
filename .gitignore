@@ -1,0 +1,15 @@
+
+out
+data
+
+# Build
+build/
+
+
+# Python
+*.pyc
+__pycache__/
+*.egg-info
+
+# Other
+.vscode/

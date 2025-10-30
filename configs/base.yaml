@@ -1,0 +1,105 @@
+# Paths
+_scannet_preprocessed: /path/to/data # path to preprocessed ScanNet++ data
+_must3r_chkpt: /path/to/ckpt.pth # if starting from pre-trained MUSt3R
+_chkpt: null # if starting from pre-trained PanSt3R
+
+model:
+  must3r_encoder: 
+    name: Dust3rEncoder
+    img_size: [512, 512]
+    patch_embed: PatchEmbedDust3R
+  must3r_decoder: 
+    name: MUSt3R
+    img_size: [512, 512]
+    feedback_type: single_mlp
+    memory_mode: norm_y
+  dino_encoder: 
+    name: DinoV2Encoder
+  upscaler:
+    name: PixelShuffleUpscaler
+    dims: [1024, 1024, 768]
+  panoptic_decoder: 
+    name: PanopticDecoder
+    upscaler: true
+    label_mode: sigmoid
+    text_encoder: siglip
+
+_num_views: 5
+_seed: 777
+data:
+    dataset: [ScanNetppPanoptic]
+    test_dataset: [ScanNetppPanoptic]
+    vis_dataset: [ScanNetppPanoptic]
+    ScanNetppPanoptic:
+      train_root: ${_scannet_preprocessed}
+      trainsplit: 
+      testsplit: 
+    db_options:
+      panoptic: true 
+      num_views: ${_num_views}
+      min_memory_num_views: 2
+      max_memory_num_views: ${_num_views}
+      aug_crop: 16
+    seed: ${_seed}
+    train_options:
+      ds_size: 10000
+      resolution: [[512, 384], [512, 336], [512, 288], [512, 256], [512, 160]]
+      transform: ColorJitter
+    test_options:
+      ds_size: 1000
+      resolution: [[512, 384]]
+    vis_options:
+      ds_size: 20
+      resolution: [[512, 384]]
+
+training:
+  criterion: 
+    name: PanopticLoss
+    label_mode: sigmoid
+    num_points: 12288
+  max_num_views: ${_num_views}
+  min_num_views: 2
+  finetune_must3r_encoder: false
+  finetune_must3r_decoder: false
+  must3r_chkpt: ${_must3r_chkpt}
+  chkpt: ${_chkpt}
+  seed: ${_seed}
+  batch_size: 2
+  accum_iter: 2 # Increase effective batch size
+  memory_num_views: 10
+  epochs: 200
+  weight_decay: 0.05
+  lr: 0.0001
+  blr: 1.5e-4
+  min_lr: 1e-6
+  warmup_epochs: 5
+  warmup_lr: 0
+  amp: false
+  use_memory_efficient_attention: true
+  disable_cudnn_benchmark: false
+  disable_tf32: false
+  num_workers: 8
+  keep_freq: 10
+  print_freq: 20
+  max_batch_size: null # Batched forward pass, reduces memory consumption
+  output_dir: ./out
+  logger: tensorboard
+
+  # Distributed training settings
+  nodist: true
+  dist_url: env://
+
+exp:
+  run_id: 
+  resume: false
+  exp_dir: ${training.output_dir}
+
+hydra:
+  job:
+    chdir: false
+  run:
+    dir: ${hydra:sweep.dir}
+  sweep:
+    dir: ${exp.exp_dir}/train/${now:%m-%d}/${now:%H-%M-%S-%f}
+    subdir: ${hydra.seed} #Sweep only on seed for now
+  

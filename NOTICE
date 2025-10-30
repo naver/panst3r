@@ -1,0 +1,69 @@
+PanSt3R Notice of acknowledgements:
+
+Portions of the Materials may utilize the following subcomponents or dependencies with separate copyright notices and license terms, the use of which is hereby acknowledged:
+
+
+------------------------------------------------------------------------
+PART 1: SEE NOTICES BELOW WITH RESPECT TO SOFTWARE FILES:
+------------------------------------------------------------------------
+
+(1.A) This software:
+    - mask2former/modeling/transformer_decoder/mask2former_transformer_decoder.py
+    - mask2former/modeling/matcher.py
+    - mask2former/modeling/criterion.py
+that is available here:
+    https://github.com/facebookresearch/Mask2Former
+under these conditions (MIT License):
+    https://github.com/facebookresearch/Mask2Former/blob/main/LICENSE
+is being redistributed in a modified form under the same terms and conditions here:
+    - src/panst3r/model/mask_transformer.py
+    - src/panst3r/criterion/matcher.py
+    - src/panst3r/criterion/panoptic.py
+    - src/panst3r/engine/postprocess.py
+
+(1.B) This software:
+    - panopticapi/panopticapi/utils.py
+that is available here:
+    https://github.com/cocodataset/panopticapi
+under these conditions (BSD 2-clause):
+    https://github.com/cocodataset/panopticapi/blob/master/license.txt
+is being redistributed in a modified form under the same terms and conditions here:
+    - src/panst3r/datasets/utils.py
+
+---------------------------------------------------
+PART 2: SEE NOTICES BELOW WITH RESPECT TO DATASETS:
+---------------------------------------------------
+
+The datasets listed in this PART 2, which are not being distributed with the Materials, are available under the following terms, which as applicable also apply to the use of checkpoints distributed with the Materials that are trained using such datasets (i.e., any use of checkpoints derived from such datasets are subject, as applicable, to any additional terms and conditions of the corresponding dataset license in addition to the terms and conditions of the License to the Materials):
+
+(2.A) ScanNet++V2: see https://kaldir.vc.in.tum.de/scannetpp/
+made available under the following license: https://kaldir.vc.in.tum.de/scannetpp/static/scannetpp-terms-of-use.pdf
+
+(2.B) InfiniGen generated: see https://github.com/princeton-vl/infinigen
+made available under the following license: https://github.com/princeton-vl/infinigen/blob/main/LICENSE
+
+(2.C) COCO: see https://cocodataset.org/#overview
+annotations - made available under the following license: https://cocodataset.org/#termsofuse
+use of the images - are subject to Flickr Terms of Use: https://www.flickr.com/help/terms
+
+(2.D) ADE20k: see https://ade20k.csail.mit.edu/
+made available under the following license: https://ade20k.csail.mit.edu/terms/
+
+(2.E) Aria Synthetic Environments Dataset: see https://www.projectaria.com/datasets/ase/
+made available under the following license: https://www.projectaria.com/datasets/ase/license/
+and with express written permission to distribute the PanSt3R checkpoints trained using the Aria Synthetic Environments Dataset under the terms and conditions of this License.
+
+------------------------------------------------------
+PART 3: SEE NOTICES BELOW WITH RESPECT TO MODEL FILES:
+------------------------------------------------------
+
+Portions of the Materials include models derived from the following model(s) that are available under the following terms, which as applicable also apply to the use of models distributed with the Materials (i.e., any use of derived models derived, as applicable, to any additional terms and conditions of the corresponding model license in addition to the terms and conditions of the License to the Materials):
+
+(3.A) dinov2-large: see https://huggingface.co/facebook/dinov2-large
+made available under the following license (Apache License Version 2.0): 
+https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md
+
+(3.B) siglip-base-patch16-224: see https://huggingface.co/google/siglip-base-patch16-224
+made available under the following license (Apache License Version 2.0): 
+https://huggingface.co/datasets/choosealicense/licenses/blob/main/markdown/apache-2.0.md
+
