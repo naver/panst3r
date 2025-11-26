@@ -17,6 +17,8 @@ Presented at **ICCV 2025**.
     PanSt3R: Panoptic 3D reconstruction examples
 </p>
 
+**[26/11/2025] NEW:** Version v2 released: faster prediction, more accurate segmentation ([checkpoints](#checkpoints))
+
 
 ## Table of Contents
 
@@ -121,9 +123,15 @@ python gradio_panst3r.py --weights /path/to/model/weights
 
 The following checkpoints are available for download. We include PQ scores obtained via direct multi-view prediction on the rendered test images (without LUDVIG).
 
-| Model | hypersim | replica | scannet | MD5 Checksum |
-|-------|----------|---------|---------|--------------|
-| [PanSt3R_512_5ds](https://download.europe.naverlabs.com/ComputerVision/PanSt3R/panst3r_v1_512_5ds.pth) | 56.5 | 62.0 | 65.7 | `c3836c108f1bf441fe53776e825cd1ac` |
+| Model | upscaler | hypersim | replica | scannet | MD5 Checksum |
+|-------|----------|----------|---------|---------|--------------|
+| [PanSt3R_v1_512_5ds](https://download.europe.naverlabs.com/ComputerVision/PanSt3R/panst3r_v1_512_5ds.pth) | PixelShuffle |  56.5 | 62.0 | 65.7 | `901ac0e17153f9b15decaa796511b1be` |
+| [PanSt3R_v2_512_5ds](https://download.europe.naverlabs.com/ComputerVision/PanSt3R/panst3r_v2_512_5ds.pth) | LoftUp [[git]](https://github.com/andrehuang/loftup) | 59.6 | 61.8 | 63.0 | `6a7a47a2ea635de05af45ded8dcabd57` |
+
+**Version 2 Notes**
+- Replaces the feature upscaler with LoftUp [[git]](https://github.com/andrehuang/loftup) transfomer architecture → better convergence
+- Improved standard post-processing (v2) → QUBO not necessary, faster inference
+
 
 ## Training
 

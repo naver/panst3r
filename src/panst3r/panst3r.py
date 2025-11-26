@@ -19,6 +19,7 @@ from panst3r.utils import batched_map, unstack_tensors, get_dtype
 class PanSt3R(nn.Module):
     def __init__(self, must3r_encoder: nn.Module, must3r_decoder: nn.Module, dino_encoder: nn.Module, panoptic_decoder: PanopticDecoder,
                  retrieval = None, preserve_gpu_mem: bool = False,
+                 postprocess_default: str = 'standard', qubo_enabled: bool = False,
                  must3r_encoder_requires_grad=False, must3r_decoder_requires_grad=False, verbose: bool = False):
         super().__init__()
 
@@ -39,6 +40,9 @@ class PanSt3R(nn.Module):
 
         self.must3r_encoder_requires_grad = must3r_encoder_requires_grad
         self.must3r_decoder_requires_grad = must3r_decoder_requires_grad
+
+        self.postprocess_default = postprocess_default
+        self.qubo_enabled = qubo_enabled
 
     def forward_dino(self, imgs, true_shape, max_bs=None, verbose=None):
         """DINOv2 forward pass"""
@@ -311,7 +315,9 @@ class PanSt3R(nn.Module):
             must3r_decoder=must3r_decoder,
             dino_encoder=dino_encoder,
             panoptic_decoder=panoptic_decoder,
-            retrieval=retrieval
+            retrieval=retrieval,
+            postprocess_default=ckpt['args'].postprocess_default,
+            qubo_enabled=ckpt['args'].qubo_enabled,
         )
 
         panst3r.load_state_dict(ckpt['weights'], strict=False)

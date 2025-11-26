@@ -30,6 +30,17 @@ under these conditions (BSD 2-clause):
 is being redistributed in a modified form under the same terms and conditions here:
     - src/panst3r/datasets/utils.py
 
+(1.C) This software:
+    - upsamplers/layers.py
+    - upsamplers/upsamplers.py
+that is available here:
+    https://github.com/andrehuang/loftup
+under these conditions (MIT License):
+    https://github.com/andrehuang/loftup/blob/main/LICENSE
+is being redistributed in a modified form under the same terms and conditions here:
+    - src/panst3r/model/upscalers/loftup.py
+
+
 ---------------------------------------------------
 PART 2: SEE NOTICES BELOW WITH RESPECT TO DATASETS:
 ---------------------------------------------------

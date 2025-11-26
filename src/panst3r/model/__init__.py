@@ -1,3 +1,4 @@
 from .dino import DinoV2Encoder
 from .panoptic_decoder import PanopticDecoder
-from .upscalers import PixelShuffleUpscaler
+from .upscalers import PixelShuffleUpscaler, LoftUpUpscaler
+from .input_mixer import InputMixer

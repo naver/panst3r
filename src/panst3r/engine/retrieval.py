@@ -32,7 +32,15 @@ class PanSt3RRetriever(MUSt3R_Retriever):
         asmk_params = ckpt['asmk_params']
 
         # load the asmk codebook
-        index_factory = initialize_index(asmk_params['index'])
+        device = torch.device(device)
+        gpu_id = None
+        if device.type == 'cuda':
+            if device.index is None:
+                gpu_id = torch.cuda.current_device()
+            else:
+                gpu_id = device.index
+
+        index_factory = initialize_index(gpu_id)
         cdb = Codebook.initialize_from_state(asmk_codebook, index_factory=index_factory)
         cdb.index()
 

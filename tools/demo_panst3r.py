@@ -38,7 +38,7 @@ from must3r.datasets import ImgNorm
 
 from panst3r import PanSt3R
 from panst3r.datasets import id2rgb, rgb2id
-from panst3r.engine import panoptic_inference, panoptic_inference_qubo
+from panst3r.engine import panoptic_inference_v1, panoptic_inference_v2, panoptic_inference_qubo
 from panst3r.utils import get_colors_grid
 from panst3r.tqdm import tqdm
 
@@ -236,8 +236,12 @@ def get_reconstructed_scene(outdir, model: PanSt3R, device, verbose, image_size,
         size = true_shape.cpu().numpy()
         if postprocess_fn == 'qubo':
             pan_preds = panoptic_inference_qubo(pan_out['pred_logits'], pan_out['pred_masks'], size, label_mode=label_mode, device='cpu', multi_ar=True)
+        elif postprocess_fn == 'standard_v1':
+            pan_preds = panoptic_inference_v1(pan_out['pred_logits'], pan_out['pred_masks'], size, label_mode=label_mode, device='cpu', multi_ar=True)
+        elif postprocess_fn == 'standard_v2':
+            pan_preds = panoptic_inference_v2(pan_out['pred_logits'], pan_out['pred_masks'], size, label_mode=label_mode, device='cpu', multi_ar=True)
         else:
-            pan_preds = panoptic_inference(pan_out['pred_logits'], pan_out['pred_masks'], size, label_mode=label_mode, device='cpu', multi_ar=True)
+            raise ValueError(f'did not recognize {postprocess_fn=}')
 
         x_out = [post_process(pmi[0]) for pmi in out_3D]
 
@@ -299,35 +303,29 @@ def get_reconstructed_scene(outdir, model: PanSt3R, device, verbose, image_size,
         print(f'pointcloud prepared in {ellapsed}')
 
 
-def load_local_files(inputfiles, textinput, num_mem_images):
-
+def load_local_files(textinput):
     if textinput is not None and textinput:
         files = os.listdir(textinput)
         files = [os.path.join(textinput, f) for f in files]
         files = [f for f in files if is_valid_pil_image_file(f)]
         files = sorted(files)
-    inputfiles = gradio.File(value=None, file_count="multiple",
-                             file_types=list(PIL.Image.registered_extensions().keys()))
-    loaded_files = gradio.TextArea(interactive=False, value="\n".join(files), visible=True)
+    loaded_files = gradio.TextArea(value="\n".join(files), visible=True)
 
-    return inputfiles, loaded_files, set_execution_params(files, num_mem_images)
+    return loaded_files, set_execution_params(files)
 
 
 def upload_files(inputfiles, loaded_files):
     if inputfiles is not None:
         loaded_files = gradio.TextArea(value="", interactive=False, visible=False)
         valid_files = [f for f in inputfiles if is_valid_pil_image_file(f)]
-        inputfiles_component = gradio.File(value=valid_files, file_count="multiple",
-                                           file_types=list(PIL.Image.registered_extensions().keys()))
+        inputfiles_component = gradio.File(value=valid_files, file_count="multiple", file_types=['image'])
     elif loaded_files:
         inputfiles = loaded_files.split("\n")
         loaded_files = gradio.TextArea(interactive=False, value=loaded_files, visible=True)
-        inputfiles_component = gradio.File(value=None, file_count="multiple",
-                                           file_types=list(PIL.Image.registered_extensions().keys()))
+        inputfiles_component = gradio.File(value=None, file_count="multiple", file_types=['image'])
     else:
         loaded_files = gradio.TextArea(value="", interactive=False, visible=False)
-        inputfiles_component = gradio.File(value=None, file_count="multiple",
-                                           file_types=list(PIL.Image.registered_extensions().keys()))
+        inputfiles_component = gradio.File(value=None, file_count="multiple", file_types=['image'])
 
     return inputfiles_component, loaded_files, set_execution_params(inputfiles)
 
@@ -484,13 +482,13 @@ class ViserVisualizer():
             with self.server.gui.add_folder("Camera", expand_by_default=True):
                 self.animate_camera_btn = self.server.gui.add_button("Start camera animation")
                 self.fps_slider = self.server.gui.add_slider(
-                    "Animation FPS", min=1, max=60, step=1, initial_value=30
+                    "Animation FPS", min=1, max=60, step=1, initial_value=60
                 )
                 self.animation_speed = self.server.gui.add_slider(
                     "Animation speed", min=0.1, max=2.0, step=0.1, initial_value=1.0
                 )
                 self.camera_radius = self.server.gui.add_slider(
-                    "Camera radius", min=1, max=80, step=1, initial_value=20
+                    "Camera radius", min=0.5, max=30, step=0.5, initial_value=10
                 )
 
             self.animate_camera_btn.on_click(self.set_animate)
@@ -562,6 +560,9 @@ class ViserVisualizer():
             pose.scale = self.camera_size.value * 0.1
 
     def update_points(self, _ev):
+        if self.data is None or self.pc is None:
+            return
+
         self.pc.points = self.data_f['pts_local'] if self.local_pointmaps.value else self.data_f['pts']
 
     def regenerate_colors(self, _ev):
@@ -643,6 +644,7 @@ class ViserVisualizer():
             points=self.data_f['pts_local'] if self.local_pointmaps.value else self.data_f['pts'],
             colors=_blend_colors(self.data_f['rgb'], self.data_f['pan_vis'], float(self.opacity.value)),
             point_size=self.point_size.value * 0.01,
+            point_shape='circle',
         )
 
         self.labels = []
@@ -704,8 +706,7 @@ def main_demo(tmpdirname, model: PanSt3R, device, image_size, server_name, serve
                 with gradio.Column():
                     optional_tab = lambda x: gradio.Tab(x) if allow_local_files else nullcontext()
                     with optional_tab("Upload images"):
-                        inputfiles = gradio.File(file_count="multiple", file_types=list(PIL.Image.registered_extensions().keys()),
-                                                height=250)
+                        inputfiles = gradio.File(file_count="multiple", file_types=['image'], height=250)
                     with optional_tab("Local path"):
                         textinput = gradio.Textbox(label="Path to a local image directory", visible=allow_local_files)
                         load_files = gradio.Button("Load", visible=allow_local_files)
@@ -719,8 +720,8 @@ def main_demo(tmpdirname, model: PanSt3R, device, image_size, server_name, serve
                                                     visible=model.retrieval is not None)
                     class_set = gradio.CheckboxGroup(choices=[('ScanNet++ (100)', 'scannet'), ('COCO', 'coco'), ('ADE20k', 'ade20k')], value=['scannet'], label="Class set",
                                                      visible=True, interactive=True)
-                    postprocess_fn = gradio.Radio(choices=[('QUBO', 'qubo'),('Standard', 'standard')], label="Panoptic postprocessing",
-                                                     value='qubo', visible=True, interactive=True)
+                    postprocess_fn = gradio.Radio(choices=[('QUBO', 'qubo'),('Standard (v1)', 'standard_v1'), ('Standard (v2)', 'standard_v2')], label="Panoptic postprocessing",
+                                                     value=model.postprocess_default, visible=True, interactive=True)
                     run_btn = gradio.Button("Run", variant="primary")
 
                     status = gradio.Markdown(value='Upload images and click **Run** to start', height=50)
@@ -752,8 +753,8 @@ def main_demo(tmpdirname, model: PanSt3R, device, image_size, server_name, serve
 
             if allow_local_files:
                 load_files.click(fn=load_local_files,
-                                 inputs=[inputfiles, textinput, num_mem_images],
-                                 outputs=[inputfiles, loaded_files, num_mem_images])
+                                 inputs=[textinput],
+                                 outputs=[loaded_files, num_mem_images])
 
             run_btn.click(fn=recon_fun,
                           inputs=[inputfiles, loaded_files, num_mem_images, use_retrieval, class_set, postprocess_fn],

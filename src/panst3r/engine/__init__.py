@@ -1,1 +1,1 @@
-from .postprocess import panoptic_inference, panoptic_inference_qubo
+from .postprocess import panoptic_inference_v1, panoptic_inference_v2, panoptic_inference_qubo

@@ -6,10 +6,14 @@ from panst3r.tqdm import tqdm
 
 # Adapted for PanSt3R from Mask2Former (https://github.com/facebookresearch/Mask2Former) by Meta Platforms, Inc.
 # Original code licensed under the MIT License.
+def panoptic_inference_v1(*args, mask_threshold=0.5, overlap_threshold=0.8, **kwargs):
+    return panoptic_inference_v2(*args, mask_threshold=mask_threshold, overlap_threshold=overlap_threshold,
+                                 niters=1, **kwargs)
+
 @torch.no_grad()
-def panoptic_inference(mask_cls, mask_pred, true_shape, label_mode='sigmoid',
-                       object_mask_threshold=0.1, temperature=None,
-                       overlap_threshold=0.8, void_confidence=0.1, device=None, multi_ar=False):
+def panoptic_inference_v2(mask_cls, mask_pred, true_shape, label_mode='sigmoid',
+                       cls_threshold=0.1, temperature=None, mask_threshold=0.25,
+                       overlap_threshold=0.5, niters=2, void_confidence=0.1, device=None, multi_ar=False):
 
     if multi_ar:
         for i in range(len(mask_pred)):
@@ -35,7 +39,7 @@ def panoptic_inference(mask_cls, mask_pred, true_shape, label_mode='sigmoid',
 
         if label_mode == 'sigmoid':
             scores, labels = mask_cls_i.sigmoid().max(-1)
-            keep = scores >  object_mask_threshold
+            keep = scores >  cls_threshold
 
             # temperature softmax scaling, make the class prediction sharper
             if temperature is not None:
@@ -44,7 +48,7 @@ def panoptic_inference(mask_cls, mask_pred, true_shape, label_mode='sigmoid',
         else:
             scores, labels = F.softmax(mask_cls_i, dim=-1).max(-1)
             num_classes = mask_cls_i.shape[-1] - 1
-            keep = labels.ne(num_classes) & (scores > object_mask_threshold)
+            keep = labels.ne(num_classes) & (scores > cls_threshold)
 
         cur_scores = scores[keep]
         cur_classes = labels[keep]
@@ -58,35 +62,35 @@ def panoptic_inference(mask_cls, mask_pred, true_shape, label_mode='sigmoid',
         # TODO: update
         cur_prob_masks = cur_scores.view(-1, 1, 1, 1) * cur_masks
 
-        panoptic_seg = torch.zeros(cur_masks.shape[-3:], dtype=torch.int32, device=cur_masks.device)
-        conf = torch.zeros(cur_masks.shape[-3:], dtype=torch.float, device=cur_masks.device) + void_confidence
-        segments_info = []
 
-        current_segment_id = 0
+        for it in range(niters):
+            panoptic_seg = torch.zeros(cur_masks.shape[-3:], dtype=torch.int32, device=cur_masks.device)
+            conf = torch.zeros(cur_masks.shape[-3:], dtype=torch.float, device=cur_masks.device) + void_confidence
+            segments_info = []
+            if cur_masks.shape[0] == 0:
+                # We didn't detect any mask :(
+                break
 
-        if cur_masks.shape[0] == 0:
-            # We didn't detect any mask :(
-            results.append({
-                'pan': panoptic_seg,
-                'segments_info': segments_info,
-                'conf': conf.detach()
-            })
-        else:
             # take argmax
+            segments_info = []
+            current_segment_id = 0
             cur_mask_ids = cur_prob_masks.argmax(0)
             stuff_memory_list = {}
+            selected = []
             for k in range(cur_classes.shape[0]):
                 pred_class = cur_classes[k].item()
                 query_id = cur_indices[k].item()
                 # isthing = pred_class in self.metadata.thing_dataset_id_to_contiguous_id.values()
                 isthing = True # TODO: temporary fix, treat everything as things
-                mask_area = (cur_mask_ids == k).sum().item()
                 original_area = (cur_masks[k] >= 0.5).sum().item()
-                mask = (cur_mask_ids == k) & (cur_masks[k] >= 0.5)
+                mask = (cur_mask_ids == k) & (cur_masks[k] >= mask_threshold)
+                mask_area = mask.sum().item()
 
                 if mask_area > 0 and original_area > 0 and mask.sum().item() > 0:
                     if mask_area / original_area < overlap_threshold:
                         continue
+
+                    selected.append(k)
 
                     # merge stuff regions
                     if not isthing:
@@ -108,15 +112,21 @@ def panoptic_inference(mask_cls, mask_pred, true_shape, label_mode='sigmoid',
                         }
                     )
 
-            if multi_ar:
-                panoptic_seg = [panoptic_seg[i, :H, :W].contiguous() for i, (H, W) in enumerate(true_shape)]
-                conf = [conf[i, :H, :W].contiguous() for i, (H, W) in enumerate(true_shape)]
+            selected = torch.tensor(selected, device=cur_masks.device, dtype=torch.int64)
+            cur_prob_masks = cur_prob_masks[selected]
+            cur_classes = cur_classes[selected]
+            cur_indices = cur_indices[selected]
+            cur_masks = cur_masks[selected]
 
-            results.append({
-                'pan': panoptic_seg,
-                'segments_info': segments_info,
-                'conf': conf
-            })
+        if multi_ar:
+            panoptic_seg = [panoptic_seg[i, :H, :W].contiguous() for i, (H, W) in enumerate(true_shape)]
+            conf = [conf[i, :H, :W].contiguous() for i, (H, W) in enumerate(true_shape)]
+
+        results.append({
+            'pan': panoptic_seg,
+            'segments_info': segments_info,
+            'conf': conf
+        })
 
     return results
 
