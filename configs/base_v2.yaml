@@ -22,7 +22,3 @@ model:
     mask_dim: 384
     label_mode: sigmoid
     text_encoder: siglip
-
-training:
-  batch_size: 1
-
