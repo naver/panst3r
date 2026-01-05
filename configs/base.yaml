@@ -5,22 +5,22 @@ _chkpt: null # if starting from pre-trained PanSt3R
 
 model:
   must3r_encoder: 
-    name: Dust3rEncoder
+    _target_: Dust3rEncoder
     img_size: [512, 512]
     patch_embed: PatchEmbedDust3R
   must3r_decoder: 
-    name: MUSt3R
+    _target_: MUSt3R
     img_size: [512, 512]
     feedback_type: single_mlp
     memory_mode: norm_y
   dino_encoder: 
-    name: DinoV2Encoder
-  upscaler:
-    name: PixelShuffleUpscaler
-    dims: [1024, 1024, 768]
+    _target_: DinoV2Encoder
   panoptic_decoder: 
-    name: PanopticDecoder
-    upscaler: true
+    _target_: PanopticDecoder
+    input_mixer: null
+    upscaler:
+      _target_: PixelShuffleUpscaler
+      input_dim: 2816 # 1024 + 1024 + 768
     label_mode: sigmoid
     text_encoder: siglip
 
@@ -54,7 +54,7 @@ data:
 
 training:
   criterion: 
-    name: PanopticLoss
+    _target_: PanopticLoss
     label_mode: sigmoid
     num_points: 12288
   max_num_views: ${_num_views}
@@ -66,7 +66,6 @@ training:
   seed: ${_seed}
   batch_size: 2
   accum_iter: 2 # Increase effective batch size
-  memory_num_views: 10
   epochs: 200
   weight_decay: 0.05
   lr: 0.0001

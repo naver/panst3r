@@ -36,7 +36,6 @@ from panst3r.model import *
 from panst3r.criterion import *
 
 
-
 LOGGING_PROJECT = 'panst3r'
 
 #logger = logging.getLogger(__name__)
@@ -53,32 +52,28 @@ def get_resolution(res_list):
         resolution=(res_list[0][0], res_list[0][1])
     return resolution
 
+def parse_obj_config(cfg_node):
+    """Simple parser for a DictConfig object to a string representing the object instantiation."""
+
+    if isinstance(cfg_node, str):
+        return f"'{cfg_node}'"
+
+    if not isinstance(cfg_node, DictConfig) or '_target_' not in cfg_node:
+        return cfg_node
+
+    cls_name = cfg_node._target_
+    args = {k: parse_obj_config(v) for k, v in cfg_node.items() if k != '_target_'}
+
+    return f"{cls_name}({', '.join([f'{k}={v}' for k, v in args.items()])})"
+
 def args_from_cfg(cfg):
     myargs={}
-    img_size=cfg.model.must3r_encoder.img_size
-    patch_embed=cfg.model.must3r_encoder.patch_embed
-    myargs["must3r_encoder"] = f"{cfg.model.must3r_encoder.name}(img_size=({img_size[0]}, {img_size[1]}), {patch_embed=})"
-    img_size=cfg.model.must3r_decoder.img_size
-    feedback_type=cfg.model.must3r_decoder.feedback_type
-    memory_mode=cfg.model.must3r_decoder.memory_mode
-    myargs["must3r_decoder"] = f"{cfg.model.must3r_decoder.name}(img_size=({img_size[0]}, {img_size[1]}), {feedback_type=}, {memory_mode=} )"
 
-    myargs["dino_encoder"] = f"{cfg.model.dino_encoder.name}()"
-
-
-    upscaler_dim=0
-    for d in range(len(cfg.model.upscaler.dims)):
-        upscaler_dim+=+cfg.model.upscaler.dims[d]
-    upscaler=f"{cfg.model.upscaler.name}({upscaler_dim})"
-
-    text_encoder=cfg.model.panoptic_decoder.text_encoder
-    label_mode=cfg.model.panoptic_decoder.label_mode
-    num_points=cfg.training.criterion.num_points
-    if cfg.model.panoptic_decoder.upscaler:
-        myargs["panoptic_decoder"] = f"{cfg.model.panoptic_decoder.name}(upscaler={upscaler}, {text_encoder=}, {label_mode=})"
-    else:
-        myargs["panoptic_decoder"] = f"{cfg.model.panoptic_decoder.name}({text_encoder=}, {label_mode=})"
-    myargs["criterion"] = f"{cfg.training.criterion.name}({label_mode=}, {num_points=})"
+    myargs["must3r_encoder"] = parse_obj_config(cfg.model.must3r_encoder)
+    myargs["must3r_decoder"] = parse_obj_config(cfg.model.must3r_decoder)
+    myargs["dino_encoder"] = parse_obj_config(cfg.model.dino_encoder)
+    myargs["panoptic_decoder"] = parse_obj_config(cfg.model.panoptic_decoder)
+    myargs["criterion"] = parse_obj_config(cfg.training.criterion)
 
     num_views=cfg.data.db_options.num_views
     min_memory_num_views=cfg.data.db_options.min_memory_num_views

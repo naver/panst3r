@@ -1,0 +1,28 @@
+defaults:
+  - base
+
+model:
+  panoptic_decoder: 
+    _target_: PanopticDecoder
+    input_mixer:
+      _target_: InputMixer
+      img_size: [512, 512]
+      patch_size: 16
+      in_dim: 2816 # 1024+1024+768
+      hidden_dim: 768
+      num_heads: 12
+      num_layers: 3
+      ff_dim_mult: 4
+    upscaler:
+      _target_: LoftUpUpscaler
+      input_dim: 768 # input_mixer hidden_dim
+      dim: 384
+      output_stride: 2
+      patch_size: 16
+    mask_dim: 384
+    label_mode: sigmoid
+    text_encoder: siglip
+
+training:
+  batch_size: 1
+
