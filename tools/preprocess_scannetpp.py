@@ -419,8 +419,8 @@ def process_scenes(root, class_list, instance_list, mapping_file, pairsdir, outp
         pyrender_scene = pyrender.Scene()
         pyrender_scene.add(mesh)
 
-        selection_dslr = [imgname + '.JPG' for imgname in selection if imgname.startswith('DSC')]
-        selection_iphone = [imgname + '.jpg' for imgname in selection if imgname.startswith('frame_')]
+        selection_iphone = [imgname + '.jpg' for imgname in selection if 'frame_' in imgname]
+        selection_dslr = [imgname + '.JPG' for imgname in selection if not 'frame_' in imgname]
 
         # resize the image to a more manageable size and render depth
         for selection_cam, img_idx, img_infos, paths_data in [(selection_dslr, img_idx_dslr, img_infos_dslr, dslr_paths),
@@ -496,14 +496,14 @@ def process_scenes(root, class_list, instance_list, mapping_file, pairsdir, outp
         trajectories = []
         intrinsics = []
         for imgname in selection:
-            if imgname.startswith('DSC'):
+            if 'DSC' in imgname:
                 imgidx = img_idx_dslr[imgname + '.JPG']
                 img_infos_idx = img_infos_dslr[imgidx]
-            elif imgname.startswith('frame_'):
+            elif 'frame_' in imgname:
                 imgidx = img_idx_iphone[imgname + '.jpg']
                 img_infos_idx = img_infos_iphone[imgidx]
             else:
-                raise ValueError('invalid image name')
+                raise ValueError(f'invalid image name {imgname}')
 
             intrinsics.append(img_infos_idx['intrinsics'])
             trajectories.append(img_infos_idx['cam_to_world'])
