@@ -19,7 +19,7 @@ from panst3r.utils import batched_map, unstack_tensors, get_dtype
 class PanSt3R(nn.Module):
     def __init__(self, must3r_encoder: nn.Module, must3r_decoder: nn.Module, dino_encoder: nn.Module, panoptic_decoder: PanopticDecoder,
                  retrieval = None, preserve_gpu_mem: bool = False,
-                 postprocess_default: str = 'standard', qubo_enabled: bool = False,
+                 postprocess_default: str = 'standard_v2', qubo_enabled: bool = True,
                  must3r_encoder_requires_grad=False, must3r_decoder_requires_grad=False, verbose: bool = False):
         super().__init__()
 
@@ -316,8 +316,8 @@ class PanSt3R(nn.Module):
             dino_encoder=dino_encoder,
             panoptic_decoder=panoptic_decoder,
             retrieval=retrieval,
-            postprocess_default=ckpt['args'].postprocess_default,
-            qubo_enabled=ckpt['args'].qubo_enabled,
+            postprocess_default=ckpt['args'].postprocess_default if 'postprocess_default' in ckpt['args'] else 'standard_v2',
+            qubo_enabled=ckpt['args'].qubo_enabled if 'qubo_enabled' in ckpt['args'] else True,
         )
 
         panst3r.load_state_dict(ckpt['weights'], strict=False)
